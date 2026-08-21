@@ -8,6 +8,7 @@ export type Match = {
   mode: GameMode;
   target_score: number | null;
   best_of: number;
+  reds_count: number;
   player1_id: string;
   player2_id: string;
   player1_frames: number;
@@ -58,6 +59,7 @@ export async function createMatch(input: {
   mode: GameMode;
   target_score: number | null;
   best_of: number;
+  reds_count: number;
   player1_id: string;
   player2_id: string;
 }): Promise<Match> {

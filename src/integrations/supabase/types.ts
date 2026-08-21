@@ -76,6 +76,7 @@ export type Database = {
           player1_id: string
           player2_frames: number
           player2_id: string
+          reds_count: number
           target_score: number | null
           winner_id: string | null
         }
@@ -89,6 +90,7 @@ export type Database = {
           player1_id: string
           player2_frames?: number
           player2_id: string
+          reds_count?: number
           target_score?: number | null
           winner_id?: string | null
         }
@@ -102,6 +104,7 @@ export type Database = {
           player1_id?: string
           player2_frames?: number
           player2_id?: string
+          reds_count?: number
           target_score?: number | null
           winner_id?: string | null
         }

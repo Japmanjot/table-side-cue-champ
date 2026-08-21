@@ -232,7 +232,7 @@ function Board({
                 <div className="h-3 overflow-hidden rounded-full bg-secondary">
                   <div
                     className="h-full rounded-full bg-felt-light transition-all"
-                    style={{ width: `${Math.min(100, (state.scores[i] / target) * 100)}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, (state.scores[i] / target) * 100))}%` }}
                   />
                 </div>
               </div>
@@ -288,7 +288,7 @@ function Board({
       {/* Fouls */}
       <div className="mt-4 px-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Fouls — awarded to {names[state.striker === 0 ? 1 : 0]}
+          Fouls — deducted from {names[state.striker]}
         </p>
         {mode === "race" ? (
           <div className="grid grid-cols-2 gap-2">
@@ -297,14 +297,14 @@ function Board({
               className="h-16 rounded-2xl text-base font-bold"
               onClick={() => foul(RACE_FOUL_RED, "red foul")}
             >
-              +{RACE_FOUL_RED} Red foul
+              −{RACE_FOUL_RED} Red foul
             </Button>
             <Button
               variant="destructive"
               className="h-16 rounded-2xl text-base font-bold"
               onClick={() => foul(RACE_FOUL_OTHER, "other foul")}
             >
-              +{RACE_FOUL_OTHER} Other foul
+              −{RACE_FOUL_OTHER} Other foul
             </Button>
           </div>
         ) : (
@@ -316,7 +316,7 @@ function Board({
                 className="h-16 rounded-2xl text-base font-bold"
                 onClick={() => foul(n, `foul ${n}`)}
               >
-                +{n}
+                −{n}
               </Button>
             ))}
           </div>

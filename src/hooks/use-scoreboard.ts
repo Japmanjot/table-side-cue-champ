@@ -33,7 +33,7 @@ function reduce(state: FrameState, action: Action): FrameState {
     case "foul": {
       const other = (action.striker === 0 ? 1 : 0) as 0 | 1;
       const scores: [number, number] = [...state.scores] as [number, number];
-      scores[other] += action.points;
+      scores[action.striker] -= action.points;
       return { ...state, scores, breakPoints: 0, striker: other };
     }
     case "switch":
@@ -77,7 +77,7 @@ export function useScoreboard(mode: GameMode) {
     const last = history[history.length - 1];
     if (!last) return null;
     if (last.kind === "pot") return `${last.ball} +${last.points}`;
-    if (last.kind === "foul") return `${last.label} +${last.points}`;
+    if (last.kind === "foul") return `${last.label} −${last.points}`;
     return "switch turn";
   }, [history]);
 

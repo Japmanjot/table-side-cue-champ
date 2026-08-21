@@ -232,7 +232,7 @@ function Board({
                 <div className="h-3 overflow-hidden rounded-full bg-secondary">
                   <div
                     className="h-full rounded-full bg-felt-light transition-all"
-                    style={{ width: `${Math.min(100, (state.scores[i] / target) * 100)}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, (state.scores[i] / target) * 100))}%` }}
                   />
                 </div>
               </div>

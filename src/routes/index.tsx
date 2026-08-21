@@ -1,24 +1,269 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Minus, Plus, Play } from "lucide-react";
+import { toast } from "sonner";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { AppShell } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
+import { createMatch, fetchPlayers, type Player } from "@/lib/db";
+import type { GameMode } from "@/lib/game";
+import { cn } from "@/lib/utils";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "New Match — Cue Room Scoreboard" },
+      {
+        name: "description",
+        content:
+          "Pick two strikers, choose standard snooker or race-to-target mode, and start scoring at the table.",
+      },
+      { property: "og:title", content: "New Match — Cue Room Scoreboard" },
+      {
+        property: "og:description",
+        content: "Set up a snooker frame or a race-to-target game in two taps.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const BEST_OF = [1, 3, 5, 7];
+const TARGET_PRESETS = [50, 75, 100, 150];
+
 function Index() {
+  const navigate = useNavigate();
+  const { data: players = [], isLoading } = useQuery({
+    queryKey: ["players"],
+    queryFn: fetchPlayers,
+  });
+
+  const [p1, setP1] = useState<string | null>(null);
+  const [p2, setP2] = useState<string | null>(null);
+  const [mode, setMode] = useState<GameMode>("standard");
+  const [bestOf, setBestOf] = useState(1);
+  const [target, setTarget] = useState(50);
+
+  useEffect(() => {
+    if (players.length >= 2 && !p1 && !p2) {
+      setP1(players[0]!.id);
+      setP2(players[1]!.id);
+    }
+  }, [players, p1, p2]);
+
+  const start = useMutation({
+    mutationFn: async () => {
+      if (!p1 || !p2 || p1 === p2) throw new Error("Pick two different players");
+      return createMatch({
+        mode,
+        target_score: mode === "race" ? target : null,
+        best_of: mode === "race" ? 1 : bestOf,
+        player1_id: p1,
+        player2_id: p2,
+      });
+    },
+    onSuccess: (match) => {
+      navigate({ to: "/play", search: { matchId: match.id } });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
+    <AppShell title="Cue Room" subtitle="Table-side scoreboard">
+      <section className="space-y-6">
+        <PlayerPicker
+          label="Striker 1"
+          players={players}
+          value={p1}
+          onChange={setP1}
+          disabledId={p2}
+          loading={isLoading}
+        />
+        <PlayerPicker
+          label="Striker 2"
+          players={players}
+          value={p2}
+          onChange={setP2}
+          disabledId={p1}
+          loading={isLoading}
+        />
+
+        <div>
+          <Label>Game mode</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <ModeCard
+              active={mode === "standard"}
+              onClick={() => setMode("standard")}
+              title="Standard"
+              detail="15 reds + colours, 147 max"
+            />
+            <ModeCard
+              active={mode === "race"}
+              onClick={() => setMode("race")}
+              title="Race Mode"
+              detail="1 red (10 pts) + colours"
+            />
+          </div>
+        </div>
+
+        {mode === "standard" ? (
+          <div>
+            <Label>Match length</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {BEST_OF.map((n) => (
+                <Chip key={n} active={bestOf === n} onClick={() => setBestOf(n)}>
+                  {n === 1 ? "Single" : `Bo${n}`}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <Label>Target score</Label>
+            <div className="felt-panel flex items-center justify-between rounded-2xl p-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-14 w-14 rounded-xl"
+                onClick={() => setTarget((t) => Math.max(10, t - 10))}
+                aria-label="Decrease target by 10"
+              >
+                <Minus className="h-6 w-6" />
+              </Button>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={target}
+                onChange={(e) => setTarget(Math.max(10, Number(e.target.value) || 0))}
+                className="score-digits w-28 bg-transparent text-center text-5xl text-gold outline-none"
+                aria-label="Target score"
+              />
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-14 w-14 rounded-xl"
+                onClick={() => setTarget((t) => t + 10)}
+                aria-label="Increase target by 10"
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {TARGET_PRESETS.map((n) => (
+                <Chip key={n} active={target === n} onClick={() => setTarget(n)}>
+                  {n}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <Button
+          className="h-16 w-full rounded-2xl text-lg font-semibold"
+          disabled={!p1 || !p2 || p1 === p2 || start.isPending}
+          onClick={() => start.mutate()}
+        >
+          <Play className="mr-2 h-5 w-5" />
+          Start match
+        </Button>
+      </section>
+    </AppShell>
+  );
+}
+
+function Label({ children }: { children: string }) {
+  return (
+    <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+      {children}
+    </p>
+  );
+}
+
+function Chip({
+  children,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "h-12 rounded-xl border border-border bg-card text-base font-semibold transition-colors",
+        active && "border-gold bg-accent text-gold",
+      )}
     >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+      {children}
+    </button>
+  );
+}
+
+function ModeCard({
+  active,
+  onClick,
+  title,
+  detail,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl border border-border bg-card p-4 text-left transition-colors",
+        active && "border-gold bg-accent",
+      )}
+    >
+      <span className="display block text-2xl uppercase">{title}</span>
+      <span className="mt-1 block text-xs text-muted-foreground">{detail}</span>
+    </button>
+  );
+}
+
+function PlayerPicker({
+  label,
+  players,
+  value,
+  onChange,
+  disabledId,
+  loading,
+}: {
+  label: string;
+  players: Player[];
+  value: string | null;
+  onChange: (id: string) => void;
+  disabledId: string | null;
+  loading: boolean;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      {loading ? (
+        <div className="h-12 animate-pulse rounded-xl bg-card" />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {players.map((p) => (
+            <button
+              key={p.id}
+              disabled={p.id === disabledId}
+              onClick={() => onChange(p.id)}
+              className={cn(
+                "h-12 rounded-xl border border-border bg-card px-4 font-semibold transition-colors disabled:opacity-30",
+                value === p.id && "border-gold bg-accent text-gold",
+              )}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

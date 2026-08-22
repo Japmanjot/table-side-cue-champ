@@ -261,21 +261,43 @@ function Board({
         </Button>
       </div>
 
+      {/* Table tracker */}
+      {mode === "standard" ? (
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-2 mx-3 text-xs uppercase tracking-widest text-muted-foreground">
+          <span>
+            Reds left <span className="score-digits ml-1 text-xl text-gold">{redsRemaining}</span>
+          </span>
+          <span>
+            On table{" "}
+            <span className="score-digits ml-1 text-xl text-gold">
+              {pointsRemaining(redsRemaining, colourStep)}
+            </span>
+            <span className="ml-1 normal-case tracking-normal">of {maxPoints(redsCount)}</span>
+          </span>
+        </div>
+      ) : null}
+
       {/* Ball bar */}
       <div className="mt-4 grid grid-cols-4 gap-2 px-3">
-        {BALLS.map((ball) => (
-          <button
-            key={ball.key}
-            onClick={() => pot(ball.key)}
-            className="flex h-20 flex-col items-center justify-center rounded-2xl border border-border bg-card active:scale-95 transition-transform"
-          >
-            <span
-              className="h-9 w-9 rounded-full border border-black/30 shadow-inner"
-              style={{ backgroundColor: ball.swatch }}
-            />
-            <span className="mt-1 text-sm font-bold">+{ballValue(ball.key, mode)}</span>
-          </button>
-        ))}
+        {BALLS.map((ball) => {
+          const redDone = mode === "standard" && ball.key === "red" && redsRemaining === 0;
+          return (
+            <button
+              key={ball.key}
+              onClick={() => pot(ball.key)}
+              disabled={redDone}
+              className="flex h-20 flex-col items-center justify-center rounded-2xl border border-border bg-card active:scale-95 transition-transform disabled:opacity-30 disabled:active:scale-100"
+            >
+              <span
+                className="h-9 w-9 rounded-full border border-black/30 shadow-inner"
+                style={{ backgroundColor: ball.swatch }}
+              />
+              <span className="mt-1 text-sm font-bold">
+                {redDone ? "Done" : `+${ballValue(ball.key, mode)}`}
+              </span>
+            </button>
+          );
+        })}
         <button
           onClick={undo}
           disabled={!canUndo}
@@ -285,6 +307,7 @@ function Board({
           Undo
         </button>
       </div>
+
       {lastLabel ? (
         <p className="mt-2 px-4 text-center text-xs text-muted-foreground">Last: {lastLabel}</p>
       ) : null}

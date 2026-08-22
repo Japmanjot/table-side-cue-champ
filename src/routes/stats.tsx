@@ -92,22 +92,27 @@ function StatsPage() {
               {players.map((p) => {
                 const record = playerRecord(p.id, modeMatches, frames);
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-2xl border border-border bg-card p-4"
-                  >
-                    <span className="font-semibold">{p.name}</span>
-                    <span className="flex gap-5 text-right text-sm">
-                      <Stat label="Wins" value={record.wins} />
-                      <Stat label="Frames" value={record.frames} />
+                  <div key={p.id} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-semibold">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {record.wins}/{record.matchesPlayed} matches · {record.matchWinRate}% match
+                        win rate
+                      </span>
+                    </div>
+                    <div className="mt-3 flex justify-between text-right text-sm">
+                      <Stat label="Frames played" value={record.framesPlayed} />
+                      <Stat label="Frames won" value={record.frames} />
+                      <Stat label="Frame win %" value={`${record.frameWinRate}%`} />
                       <Stat label="High break" value={record.highBreak} />
                       <Stat label="Avg score" value={record.avg} />
-                    </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
           </section>
+
         </TabsContent>
       </Tabs>
     </AppShell>
@@ -169,13 +174,19 @@ function playerRecord(playerId: string, matches: Match[], frames: Frame[]) {
     highBreak = Math.max(highBreak, isP1 ? f.player1_high_break : f.player2_high_break);
     if (f.winner_id === playerId) framesWon += 1;
   }
+  const framesPlayed = myFrames.length;
   return {
     wins,
+    matchesPlayed: mine.length,
+    matchWinRate: mine.length ? Math.round((wins / mine.length) * 100) : 0,
     frames: framesWon,
+    framesPlayed,
+    frameWinRate: framesPlayed ? Math.round((framesWon / framesPlayed) * 100) : 0,
     highBreak,
-    avg: myFrames.length ? Math.round(points / myFrames.length) : 0,
+    avg: framesPlayed ? Math.round(points / framesPlayed) : 0,
   };
 }
+
 
 function HeadToHead({
   aId,
@@ -213,11 +224,17 @@ function HeadToHead({
           <div key={name}>
             <p className="truncate text-sm font-semibold uppercase tracking-wide">{name}</p>
             <p className="score-digits text-5xl text-gold">{r.wins}</p>
-            <p className="text-xs text-muted-foreground">wins</p>
+            <p className="text-xs text-muted-foreground">
+              match wins · {r.matchWinRate}%
+            </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Frames {r.frames} · Avg {r.avg} · Best break {r.highBreak}
+              Frames {r.frames}/{r.framesPlayed} ({r.frameWinRate}%)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Avg {r.avg} · Best break {r.highBreak}
             </p>
           </div>
+
         ))}
       </div>
     </div>

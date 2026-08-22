@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { createMatch, fetchPlayers, type Player } from "@/lib/db";
-import type { GameMode } from "@/lib/game";
+import { maxPoints, REDS_OPTIONS, type GameMode, type RedsCount } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -44,6 +44,7 @@ function Index() {
   const [mode, setMode] = useState<GameMode>("standard");
   const [bestOf, setBestOf] = useState(1);
   const [target, setTarget] = useState(50);
+  const [reds, setReds] = useState<RedsCount>(15);
 
   useEffect(() => {
     if (players.length >= 2 && !p1 && !p2) {
@@ -59,10 +60,12 @@ function Index() {
         mode,
         target_score: mode === "race" ? target : null,
         best_of: mode === "race" ? 1 : bestOf,
+        reds_count: mode === "race" ? 1 : reds,
         player1_id: p1,
         player2_id: p2,
       });
     },
+
     onSuccess: (match) => {
       navigate({ to: "/play", search: { matchId: match.id } });
     },
@@ -96,7 +99,7 @@ function Index() {
               active={mode === "standard"}
               onClick={() => setMode("standard")}
               title="Standard"
-              detail="15 reds + colours, 147 max"
+              detail={`${reds} reds + colours, ${maxPoints(reds)} max`}
             />
             <ModeCard
               active={mode === "race"}
@@ -108,16 +111,32 @@ function Index() {
         </div>
 
         {mode === "standard" ? (
-          <div>
-            <Label>Match length</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {BEST_OF.map((n) => (
-                <Chip key={n} active={bestOf === n} onClick={() => setBestOf(n)}>
-                  {n === 1 ? "Single" : `Bo${n}`}
-                </Chip>
-              ))}
+          <>
+            <div>
+              <Label>Reds count</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {REDS_OPTIONS.map((n) => (
+                  <Chip key={n} active={reds === n} onClick={() => setReds(n)}>
+                    {n} Reds
+                  </Chip>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Max break {maxPoints(reds)} pts
+              </p>
             </div>
-          </div>
+            <div>
+              <Label>Match length</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {BEST_OF.map((n) => (
+                  <Chip key={n} active={bestOf === n} onClick={() => setBestOf(n)}>
+                    {n === 1 ? "Single" : `Bo${n}`}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          </>
+
         ) : (
           <div>
             <Label>Target score</Label>

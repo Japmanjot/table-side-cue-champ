@@ -41,10 +41,37 @@ function reduce(state: FrameState, action: Action): FrameState {
   }
 }
 
-export function useScoreboard(mode: GameMode) {
+export function useScoreboard(mode: GameMode, redsCount = 15) {
   const [history, setHistory] = useState<Action[]>([]);
 
   const state = useMemo(() => history.reduce(reduce, initial()), [history]);
+
+  const redsPotted = useMemo(
+    () =>
+      mode === "standard"
+        ? history.filter((a) => a.kind === "pot" && a.ball === "red").length
+        : 0,
+    [history, mode],
+  );
+  const redsRemaining = Math.max(0, redsCount - redsPotted);
+
+  /** Colours potted after the last red is gone (clearance progress). */
+  const colourStep = useMemo(() => {
+    if (mode !== "standard" || redsRemaining > 0) return 0;
+    let seenReds = 0;
+    let step = 0;
+    for (const a of history) {
+      if (a.kind !== "pot") continue;
+      if (a.ball === "red") {
+        seenReds += 1;
+        step = 0;
+      } else if (seenReds >= redsCount) {
+        step += 1;
+      }
+    }
+    return Math.min(6, step);
+  }, [history, mode, redsCount, redsRemaining]);
+
 
   const pot = useCallback(
     (ball: BallKey) => {
@@ -81,5 +108,17 @@ export function useScoreboard(mode: GameMode) {
     return "switch turn";
   }, [history]);
 
-  return { state, pot, foul, switchTurn, undo, reset, canUndo: history.length > 0, lastLabel };
+  return {
+    state,
+    pot,
+    foul,
+    switchTurn,
+    undo,
+    reset,
+    canUndo: history.length > 0,
+    lastLabel,
+    redsRemaining,
+    colourStep,
+  };
+
 }

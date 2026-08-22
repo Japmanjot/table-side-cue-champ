@@ -44,6 +44,7 @@ function Index() {
   const [mode, setMode] = useState<GameMode>("standard");
   const [bestOf, setBestOf] = useState(1);
   const [target, setTarget] = useState(50);
+  const [reds, setReds] = useState<RedsCount>(15);
 
   useEffect(() => {
     if (players.length >= 2 && !p1 && !p2) {
@@ -59,10 +60,12 @@ function Index() {
         mode,
         target_score: mode === "race" ? target : null,
         best_of: mode === "race" ? 1 : bestOf,
+        reds_count: mode === "race" ? 1 : reds,
         player1_id: p1,
         player2_id: p2,
       });
     },
+
     onSuccess: (match) => {
       navigate({ to: "/play", search: { matchId: match.id } });
     },

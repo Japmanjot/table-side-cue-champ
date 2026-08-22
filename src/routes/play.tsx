@@ -173,10 +173,13 @@ function Board({
           {modeLabel(mode)}
           {mode === "race"
             ? ` · Target ${target}`
-            : match.best_of > 1
-              ? ` · Best of ${match.best_of} · Frame ${frameNumber}`
-              : " · Single frame"}
+            : `${` · ${redsCount} reds`}${
+                match.best_of > 1
+                  ? ` · Best of ${match.best_of} · Frame ${frameNumber}`
+                  : " · Single frame"
+              }`}
         </span>
+
       </div>
 
       {/* Scores */}

@@ -108,5 +108,17 @@ export function useScoreboard(mode: GameMode, redsCount = 15) {
     return "switch turn";
   }, [history]);
 
-  return { state, pot, foul, switchTurn, undo, reset, canUndo: history.length > 0, lastLabel };
+  return {
+    state,
+    pot,
+    foul,
+    switchTurn,
+    undo,
+    reset,
+    canUndo: history.length > 0,
+    lastLabel,
+    redsRemaining,
+    colourStep,
+  };
+
 }

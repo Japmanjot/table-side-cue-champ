@@ -21,7 +21,9 @@ import {
   STANDARD_FOULS,
   ballValue,
   framesToWin,
+  maxPoints,
   modeLabel,
+  pointsRemaining,
 } from "@/lib/game";
 import { cn } from "@/lib/utils";
 

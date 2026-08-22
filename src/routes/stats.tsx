@@ -169,13 +169,19 @@ function playerRecord(playerId: string, matches: Match[], frames: Frame[]) {
     highBreak = Math.max(highBreak, isP1 ? f.player1_high_break : f.player2_high_break);
     if (f.winner_id === playerId) framesWon += 1;
   }
+  const framesPlayed = myFrames.length;
   return {
     wins,
+    matchesPlayed: mine.length,
+    matchWinRate: mine.length ? Math.round((wins / mine.length) * 100) : 0,
     frames: framesWon,
+    framesPlayed,
+    frameWinRate: framesPlayed ? Math.round((framesWon / framesPlayed) * 100) : 0,
     highBreak,
-    avg: myFrames.length ? Math.round(points / myFrames.length) : 0,
+    avg: framesPlayed ? Math.round(points / framesPlayed) : 0,
   };
 }
+
 
 function HeadToHead({
   aId,

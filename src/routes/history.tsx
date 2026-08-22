@@ -27,41 +27,82 @@ function HistoryPage() {
   const { data: players = [] } = useQuery({ queryKey: ["players"], queryFn: fetchPlayers });
 
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
-  const played = matches.filter((m) => m.completed_at);
+  const played = [...matches]
+    .filter((m) => m.completed_at)
+    .sort(
+      (a, b) =>
+        new Date(b.completed_at ?? b.created_at).getTime() -
+        new Date(a.completed_at ?? a.created_at).getTime(),
+    );
+
+  const groups = new Map<string, typeof played>();
+  for (const m of played) {
+    const key = format(new Date(m.completed_at ?? m.created_at), "yyyy-MM-dd");
+    const list = groups.get(key) ?? [];
+    list.push(m);
+    groups.set(key, list);
+  }
+
+  const heading = (key: string) => {
+    const d = new Date(`${key}T00:00:00`);
+    if (isToday(d)) return "Today";
+    if (isYesterday(d)) return "Yesterday";
+    return format(d, "MM/dd/yyyy");
+  };
 
   return (
     <AppShell title="History" subtitle={`${played.length} matches played`}>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {played.length === 0 ? (
           <p className="text-sm text-muted-foreground">No finished matches yet.</p>
         ) : null}
-        {played.map((m) => {
-          const mFrames = frames.filter((f) => f.match_id === m.id);
-          const p1Points = mFrames.reduce((s, f) => s + f.player1_score, 0);
-          const p2Points = mFrames.reduce((s, f) => s + f.player2_score, 0);
-          return (
-            <article key={m.id} className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
-                <span>{modeLabel(m.mode)}</span>
-                <span>{format(new Date(m.created_at), "d MMM yyyy · HH:mm")}</span>
-              </div>
-              <p className="mt-2 text-lg font-semibold">
-                {name(m.player1_id)} vs {name(m.player2_id)}
+        {[...groups.entries()].map(([key, list]) => (
+          <section key={key}>
+            <div className="sticky top-0 z-10 -mx-1 mb-2 bg-background/90 px-1 py-1 backdrop-blur">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-gold">
+                {heading(key)}
+              </h2>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {list.length} {list.length === 1 ? "match" : "matches"}
               </p>
-              <p className="score-digits mt-1 text-3xl">
-                {m.mode === "race" || m.best_of === 1
-                  ? `${p1Points} – ${p2Points}`
-                  : `${m.player1_frames} – ${m.player2_frames}`}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Winner: {name(m.winner_id)}
-                {m.mode === "race" ? ` · Target ${m.target_score}` : ` · Best of ${m.best_of}`}
-                {m.mode === "standard" && m.best_of > 1 ? ` · Points ${p1Points}–${p2Points}` : ""}
-              </p>
-            </article>
-          );
-        })}
+            </div>
+            <div className="space-y-3">
+              {list.map((m) => {
+                const mFrames = frames.filter((f) => f.match_id === m.id);
+                const p1Points = mFrames.reduce((s, f) => s + f.player1_score, 0);
+                const p2Points = mFrames.reduce((s, f) => s + f.player2_score, 0);
+                return (
+                  <article key={m.id} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
+                      <span>
+                        {modeLabel(m.mode)}
+                        {m.mode === "standard" ? ` · ${m.reds_count ?? 15} reds` : ""}
+                      </span>
+                      <span>{format(new Date(m.completed_at ?? m.created_at), "HH:mm")}</span>
+                    </div>
+                    <p className="mt-2 text-lg font-semibold">
+                      {name(m.player1_id)} vs {name(m.player2_id)}
+                    </p>
+                    <p className="score-digits mt-1 text-3xl">
+                      {m.mode === "race" || m.best_of === 1
+                        ? `${p1Points} – ${p2Points}`
+                        : `${m.player1_frames} – ${m.player2_frames}`}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Frames {m.player1_frames}–{m.player2_frames} · Points {p1Points}–{p2Points}
+                    </p>
+                    <p className="mt-1 text-xs text-gold">
+                      Winner: {name(m.winner_id)}
+                      {m.mode === "race" ? ` · Target ${m.target_score}` : ` · Best of ${m.best_of}`}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </AppShell>
   );
 }
+

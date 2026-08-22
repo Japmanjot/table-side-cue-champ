@@ -92,22 +92,27 @@ function StatsPage() {
               {players.map((p) => {
                 const record = playerRecord(p.id, modeMatches, frames);
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-2xl border border-border bg-card p-4"
-                  >
-                    <span className="font-semibold">{p.name}</span>
-                    <span className="flex gap-5 text-right text-sm">
-                      <Stat label="Wins" value={record.wins} />
-                      <Stat label="Frames" value={record.frames} />
+                  <div key={p.id} className="rounded-2xl border border-border bg-card p-4">
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-semibold">{p.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {record.wins}/{record.matchesPlayed} matches · {record.matchWinRate}% match
+                        win rate
+                      </span>
+                    </div>
+                    <div className="mt-3 flex justify-between text-right text-sm">
+                      <Stat label="Frames played" value={record.framesPlayed} />
+                      <Stat label="Frames won" value={record.frames} />
+                      <Stat label="Frame win %" value={`${record.frameWinRate}%`} />
                       <Stat label="High break" value={record.highBreak} />
                       <Stat label="Avg score" value={record.avg} />
-                    </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
           </section>
+
         </TabsContent>
       </Tabs>
     </AppShell>

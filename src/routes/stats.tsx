@@ -224,11 +224,17 @@ function HeadToHead({
           <div key={name}>
             <p className="truncate text-sm font-semibold uppercase tracking-wide">{name}</p>
             <p className="score-digits text-5xl text-gold">{r.wins}</p>
-            <p className="text-xs text-muted-foreground">wins</p>
+            <p className="text-xs text-muted-foreground">
+              match wins · {r.matchWinRate}%
+            </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Frames {r.frames} · Avg {r.avg} · Best break {r.highBreak}
+              Frames {r.frames}/{r.framesPlayed} ({r.frameWinRate}%)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Avg {r.avg} · Best break {r.highBreak}
             </p>
           </div>
+
         ))}
       </div>
     </div>

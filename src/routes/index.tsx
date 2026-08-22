@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { createMatch, fetchPlayers, type Player } from "@/lib/db";
-import type { GameMode } from "@/lib/game";
+import { maxPoints, REDS_OPTIONS, type GameMode, type RedsCount } from "@/lib/game";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({

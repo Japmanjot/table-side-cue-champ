@@ -102,7 +102,9 @@ function Board({
   const names: [string, string] = [p1.name, p2.name];
   const ids: [string, string] = [p1.id, p2.id];
 
-  const { state, pot, foul, switchTurn, undo, reset, canUndo, lastLabel } = useScoreboard(mode);
+  const redsCount = mode === "race" ? 1 : (match.reds_count ?? 15);
+  const { state, pot, foul, switchTurn, undo, reset, canUndo, lastLabel, redsRemaining, colourStep } =
+    useScoreboard(mode, redsCount);
   const [frameNumber, setFrameNumber] = useState(1);
   const [frameWins, setFrameWins] = useState<[number, number]>([0, 0]);
   const [result, setResult] = useState<Result | null>(null);

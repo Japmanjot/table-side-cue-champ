@@ -110,3 +110,10 @@ export async function fetchFrames(): Promise<Frame[]> {
   if (error) throw error;
   return (data ?? []) as Frame[];
 }
+
+export async function deleteMatch(id: string) {
+  const { error: framesError } = await supabase.from("frames").delete().eq("match_id", id);
+  if (framesError) throw framesError;
+  const { error } = await supabase.from("matches").delete().eq("id", id);
+  if (error) throw error;
+}

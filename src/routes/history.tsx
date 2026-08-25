@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { fetchFrames, fetchMatches, fetchPlayers } from "@/lib/db";
+import { deleteMatch, fetchFrames, fetchMatches, fetchPlayers } from "@/lib/db";
 import { modeLabel } from "@/lib/game";
+
 
 export const Route = createFileRoute("/history")({
   head: () => ({

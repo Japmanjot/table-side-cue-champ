@@ -28,6 +28,24 @@ function HistoryPage() {
   const { data: matches = [] } = useQuery({ queryKey: ["matches"], queryFn: fetchMatches });
   const { data: frames = [] } = useQuery({ queryKey: ["frames"], queryFn: fetchFrames });
   const { data: players = [] } = useQuery({ queryKey: ["players"], queryFn: fetchPlayers });
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: deleteMatch,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["matches"] }),
+        queryClient.invalidateQueries({ queryKey: ["frames"] }),
+      ]);
+      toast.success("Match deleted");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not delete match"),
+  });
+
+  const confirmDelete = (id: string) => {
+    if (window.confirm("Delete this match record?")) remove.mutate(id);
+  };
+
 
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
   const played = [...matches]

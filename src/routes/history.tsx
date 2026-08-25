@@ -99,8 +99,20 @@ function HistoryPage() {
                         {modeLabel(m.mode)}
                         {m.mode === "standard" ? ` · ${m.reds_count ?? 15} reds` : ""}
                       </span>
-                      <span>{format(new Date(m.completed_at ?? m.created_at), "HH:mm")}</span>
+                      <span className="flex items-center gap-3">
+                        {format(new Date(m.completed_at ?? m.created_at), "HH:mm")}
+                        <button
+                          type="button"
+                          aria-label="Delete match"
+                          onClick={() => confirmDelete(m.id)}
+                          disabled={remove.isPending}
+                          className="grid h-9 w-9 place-items-center rounded-xl border border-border text-muted-foreground active:scale-95 disabled:opacity-40"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </span>
                     </div>
+
                     <p className="mt-2 text-lg font-semibold">
                       {name(m.player1_id)} vs {name(m.player2_id)}
                     </p>

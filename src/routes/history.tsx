@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { fetchFrames, fetchMatches, fetchPlayers } from "@/lib/db";
+import { deleteMatch, fetchFrames, fetchMatches, fetchPlayers } from "@/lib/db";
 import { modeLabel } from "@/lib/game";
+
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -25,6 +28,24 @@ function HistoryPage() {
   const { data: matches = [] } = useQuery({ queryKey: ["matches"], queryFn: fetchMatches });
   const { data: frames = [] } = useQuery({ queryKey: ["frames"], queryFn: fetchFrames });
   const { data: players = [] } = useQuery({ queryKey: ["players"], queryFn: fetchPlayers });
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: deleteMatch,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["matches"] }),
+        queryClient.invalidateQueries({ queryKey: ["frames"] }),
+      ]);
+      toast.success("Match deleted");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not delete match"),
+  });
+
+  const confirmDelete = (id: string) => {
+    if (window.confirm("Delete this match record?")) remove.mutate(id);
+  };
+
 
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
   const played = [...matches]
@@ -78,8 +99,20 @@ function HistoryPage() {
                         {modeLabel(m.mode)}
                         {m.mode === "standard" ? ` · ${m.reds_count ?? 15} reds` : ""}
                       </span>
-                      <span>{format(new Date(m.completed_at ?? m.created_at), "HH:mm")}</span>
+                      <span className="flex items-center gap-3">
+                        {format(new Date(m.completed_at ?? m.created_at), "HH:mm")}
+                        <button
+                          type="button"
+                          aria-label="Delete match"
+                          onClick={() => confirmDelete(m.id)}
+                          disabled={remove.isPending}
+                          className="grid h-9 w-9 place-items-center rounded-xl border border-border text-muted-foreground active:scale-95 disabled:opacity-40"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </span>
                     </div>
+
                     <p className="mt-2 text-lg font-semibold">
                       {name(m.player1_id)} vs {name(m.player2_id)}
                     </p>

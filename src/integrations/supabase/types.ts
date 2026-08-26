@@ -24,6 +24,8 @@ export type Database = {
           player1_score: number
           player2_high_break: number
           player2_score: number
+          player3_high_break: number
+          player3_score: number
           winner_id: string | null
         }
         Insert: {
@@ -35,6 +37,8 @@ export type Database = {
           player1_score?: number
           player2_high_break?: number
           player2_score?: number
+          player3_high_break?: number
+          player3_score?: number
           winner_id?: string | null
         }
         Update: {
@@ -46,6 +50,8 @@ export type Database = {
           player1_score?: number
           player2_high_break?: number
           player2_score?: number
+          player3_high_break?: number
+          player3_score?: number
           winner_id?: string | null
         }
         Relationships: [
@@ -76,6 +82,8 @@ export type Database = {
           player1_id: string
           player2_frames: number
           player2_id: string
+          player3_frames: number
+          player3_id: string | null
           reds_count: number
           target_score: number | null
           winner_id: string | null
@@ -90,6 +98,8 @@ export type Database = {
           player1_id: string
           player2_frames?: number
           player2_id: string
+          player3_frames?: number
+          player3_id?: string | null
           reds_count?: number
           target_score?: number | null
           winner_id?: string | null
@@ -104,6 +114,8 @@ export type Database = {
           player1_id?: string
           player2_frames?: number
           player2_id?: string
+          player3_frames?: number
+          player3_id?: string | null
           reds_count?: number
           target_score?: number | null
           winner_id?: string | null
@@ -119,6 +131,13 @@ export type Database = {
           {
             foreignKeyName: "matches_player2_id_fkey"
             columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_player3_id_fkey"
+            columns: ["player3_id"]
             isOneToOne: false
             referencedRelation: "players"
             referencedColumns: ["id"]

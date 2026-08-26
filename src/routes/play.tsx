@@ -52,7 +52,7 @@ export const Route = createFileRoute("/play")({
   notFoundComponent: () => <div className="p-6 text-center">Match not found.</div>,
 });
 
-type Result = { kind: "frame" | "match"; winnerIdx: 0 | 1 };
+type Result = { kind: "frame" | "match"; winnerIdx: number };
 
 function PlayPage() {
   const { matchId } = Route.useSearch();
@@ -73,9 +73,11 @@ function PlayPage() {
     );
   }
 
-  const p1 = players.find((p) => p.id === match.player1_id);
-  const p2 = players.find((p) => p.id === match.player2_id);
-  if (!p1 || !p2) {
+  const ids = [match.player1_id, match.player2_id, match.player3_id].filter(
+    (id): id is string => Boolean(id),
+  );
+  const roster = ids.map((id) => players.find((p) => p.id === id));
+  if (roster.some((p) => !p)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
         Loading players…
@@ -83,58 +85,70 @@ function PlayPage() {
     );
   }
 
-  return <Board key={match.id} match={match} p1={p1} p2={p2} onExit={() => navigate({ to: "/" })} />;
+  return (
+    <Board
+      key={match.id}
+      match={match}
+      roster={roster as Player[]}
+      onExit={() => navigate({ to: "/" })}
+    />
+  );
 }
 
 function Board({
   match,
-  p1,
-  p2,
+  roster,
   onExit,
 }: {
   match: Match;
-  p1: Player;
-  p2: Player;
+  roster: Player[];
   onExit: () => void;
 }) {
   const mode = match.mode;
   const target = match.target_score ?? 50;
-  const names: [string, string] = [p1.name, p2.name];
-  const ids: [string, string] = [p1.id, p2.id];
+  const names = roster.map((p) => p.name);
+  const ids = roster.map((p) => p.id);
+  const count = roster.length;
+  const seats = Array.from({ length: count }, (_, i) => i);
 
   const redsCount = mode === "race" ? 1 : (match.reds_count ?? 15);
   const { state, pot, foul, switchTurn, undo, reset, canUndo, lastLabel, redsRemaining, colourStep } =
-    useScoreboard(mode, redsCount);
+    useScoreboard(mode, redsCount, count);
   const [frameNumber, setFrameNumber] = useState(1);
-  const [frameWins, setFrameWins] = useState<[number, number]>([0, 0]);
+  const [frameWins, setFrameWins] = useState<number[]>(() => seats.map(() => 0));
   const [result, setResult] = useState<Result | null>(null);
   const closing = useRef(false);
 
   const needed = framesToWin(match.best_of);
+  const score = (i: number) => state.scores[i] ?? 0;
+  const high = (i: number) => state.highBreaks[i] ?? 0;
 
   const endFrame = useCallback(
-    async (winnerIdx: 0 | 1) => {
+    async (winnerIdx: number) => {
       if (closing.current) return;
       closing.current = true;
-      const wins: [number, number] = [...frameWins] as [number, number];
-      wins[winnerIdx] += 1;
-      const matchOver = mode === "race" || wins[winnerIdx] >= needed;
+      const wins = [...frameWins];
+      wins[winnerIdx] = (wins[winnerIdx] ?? 0) + 1;
+      const matchOver = mode === "race" || (wins[winnerIdx] ?? 0) >= needed;
 
       try {
         await saveFrame({
           match_id: match.id,
           frame_number: frameNumber,
-          player1_score: state.scores[0],
-          player2_score: state.scores[1],
-          player1_high_break: state.highBreaks[0],
-          player2_high_break: state.highBreaks[1],
-          winner_id: ids[winnerIdx],
+          player1_score: state.scores[0] ?? 0,
+          player2_score: state.scores[1] ?? 0,
+          player3_score: state.scores[2] ?? 0,
+          player1_high_break: state.highBreaks[0] ?? 0,
+          player2_high_break: state.highBreaks[1] ?? 0,
+          player3_high_break: state.highBreaks[2] ?? 0,
+          winner_id: ids[winnerIdx] ?? null,
         });
         await updateMatch(match.id, {
-          player1_frames: wins[0],
-          player2_frames: wins[1],
+          player1_frames: wins[0] ?? 0,
+          player2_frames: wins[1] ?? 0,
+          player3_frames: wins[2] ?? 0,
           ...(matchOver
-            ? { winner_id: ids[winnerIdx], completed_at: new Date().toISOString() }
+            ? { winner_id: ids[winnerIdx] ?? null, completed_at: new Date().toISOString() }
             : {}),
         });
       } catch (error) {
@@ -148,11 +162,11 @@ function Board({
     [frameWins, frameNumber, ids, match.id, mode, needed, state.highBreaks, state.scores],
   );
 
-  // Race mode auto-finish
+  // Race mode auto-finish — first player to reach the target wins
   useEffect(() => {
     if (mode !== "race" || result) return;
-    if (state.scores[0] >= target) void endFrame(0);
-    else if (state.scores[1] >= target) void endFrame(1);
+    const reached = state.scores.findIndex((s) => s >= target);
+    if (reached >= 0) void endFrame(reached);
   }, [mode, result, state.scores, target, endFrame]);
 
   const nextFrame = () => {
@@ -161,7 +175,8 @@ function Board({
     setResult(null);
   };
 
-  const leader: 0 | 1 = state.scores[0] >= state.scores[1] ? 0 : 1;
+  /** Highest total points once the table is cleared. */
+  const leader = seats.reduce((best, i) => (score(i) > score(best) ? i : best), 0);
 
   return (
     <div className="min-h-screen pb-[env(safe-area-inset-bottom)]">
@@ -179,34 +194,42 @@ function Board({
                   : " · Single frame"
               }`}
         </span>
-
       </div>
 
       {/* Scores */}
-      <div className="grid grid-cols-2 gap-3 px-3">
-        {([0, 1] as const).map((i) => (
+      <div className={cn("grid gap-2 px-3", count === 3 ? "grid-cols-3" : "grid-cols-2")}>
+        {seats.map((i) => (
           <button
             key={i}
             onClick={() => {
-              if (state.striker !== i) switchTurn();
+              if (state.striker !== i) {
+                // advance until this seat is at the table
+                let steps = (i - state.striker + count) % count;
+                while (steps-- > 0) switchTurn();
+              }
             }}
             className={cn(
-              "rounded-3xl border border-border bg-card p-4 text-left transition-all",
+              "rounded-3xl border border-border bg-card p-3 text-left transition-all",
               state.striker === i && "felt-panel border-gold shadow-[0_0_0_2px_var(--gold)]",
             )}
           >
-            <span className="block truncate text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="block truncate text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {names[i]}
             </span>
-            <span className="score-digits mt-1 block text-6xl">{state.scores[i]}</span>
+            <span className={cn("score-digits mt-1 block", count === 3 ? "text-4xl" : "text-6xl")}>
+              {score(i)}
+            </span>
+            <span className="mt-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+              Break {state.striker === i ? state.breakPoints : 0} · Best {high(i)}
+            </span>
             {mode === "standard" && match.best_of > 1 ? (
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Frames {frameWins[i]}/{needed}
+              <span className="mt-1 block text-[10px] text-muted-foreground">
+                Frames {frameWins[i] ?? 0}/{needed}
               </span>
             ) : null}
             {mode === "race" ? (
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {state.scores[i]}/{target}
+              <span className="mt-1 block text-[10px] text-muted-foreground">
+                {score(i)}/{target}
               </span>
             ) : null}
             {state.striker === i ? (
@@ -225,21 +248,21 @@ function Board({
             <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
               <span>Race to {target}</span>
               <span className="text-gold">
-                {names[state.striker]} {state.scores[state.striker]}/{target}
+                {names[state.striker]} {score(state.striker)}/{target}
               </span>
             </div>
-            {([0, 1] as const).map((i) => (
+            {seats.map((i) => (
               <div key={i} className="mt-2">
                 <div className="mb-1 flex justify-between text-xs">
                   <span className="truncate">{names[i]}</span>
                   <span className="text-muted-foreground">
-                    {Math.max(0, target - state.scores[i])} to go
+                    {Math.max(0, target - score(i))} to go
                   </span>
                 </div>
                 <div className="h-3 overflow-hidden rounded-full bg-secondary">
                   <div
                     className="h-full rounded-full bg-felt-light transition-all"
-                    style={{ width: `${Math.max(0, Math.min(100, (state.scores[i] / target) * 100))}%` }}
+                    style={{ width: `${Math.max(0, Math.min(100, (score(i) / target) * 100))}%` }}
                   />
                 </div>
               </div>
@@ -260,7 +283,7 @@ function Board({
           onClick={switchTurn}
         >
           <Repeat className="mr-2 h-5 w-5" />
-          Switch turn
+          Next: {names[(state.striker + 1) % count]}
         </Button>
       </div>
 
@@ -366,7 +389,11 @@ function Board({
         <Button
           variant="secondary"
           className="h-14 rounded-2xl font-semibold text-destructive"
-          onClick={() => void endFrame((state.striker === 0 ? 1 : 0) as 0 | 1)}
+          onClick={() => {
+            const others = seats.filter((i) => i !== state.striker);
+            const best = others.reduce((b, i) => (score(i) > score(b) ? i : b), others[0] ?? 0);
+            void endFrame(best);
+          }}
         >
           Concede
         </Button>
@@ -381,10 +408,10 @@ function Board({
             </h2>
             <p className="display mt-1 text-3xl text-gold">{names[result.winnerIdx]}</p>
             <p className="mt-3 text-lg font-semibold">
-              {state.scores[0]} – {state.scores[1]}
+              {seats.map((i) => score(i)).join(" – ")}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Highest breaks: {names[0]} {state.highBreaks[0]} · {names[1]} {state.highBreaks[1]}
+              Highest breaks: {seats.map((i) => `${names[i]} ${high(i)}`).join(" · ")}
             </p>
             <div className="mt-6 space-y-2">
               {result.kind === "frame" ? (

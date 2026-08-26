@@ -11,8 +11,10 @@ export type Match = {
   reds_count: number;
   player1_id: string;
   player2_id: string;
+  player3_id: string | null;
   player1_frames: number;
   player2_frames: number;
+  player3_frames: number;
   winner_id: string | null;
   completed_at: string | null;
   created_at: string;
@@ -24,11 +26,14 @@ export type Frame = {
   frame_number: number;
   player1_score: number;
   player2_score: number;
+  player3_score: number;
   player1_high_break: number;
   player2_high_break: number;
+  player3_high_break: number;
   winner_id: string | null;
   created_at: string;
 };
+
 
 export async function fetchPlayers(): Promise<Player[]> {
   const { data, error } = await supabase

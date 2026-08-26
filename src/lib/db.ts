@@ -11,8 +11,10 @@ export type Match = {
   reds_count: number;
   player1_id: string;
   player2_id: string;
+  player3_id: string | null;
   player1_frames: number;
   player2_frames: number;
+  player3_frames: number;
   winner_id: string | null;
   completed_at: string | null;
   created_at: string;
@@ -24,11 +26,14 @@ export type Frame = {
   frame_number: number;
   player1_score: number;
   player2_score: number;
+  player3_score: number;
   player1_high_break: number;
   player2_high_break: number;
+  player3_high_break: number;
   winner_id: string | null;
   created_at: string;
 };
+
 
 export async function fetchPlayers(): Promise<Player[]> {
   const { data, error } = await supabase
@@ -62,6 +67,7 @@ export async function createMatch(input: {
   reds_count: number;
   player1_id: string;
   player2_id: string;
+  player3_id?: string | null;
 }): Promise<Match> {
   const { data, error } = await supabase.from("matches").insert(input).select("*").single();
   if (error) throw error;
@@ -73,8 +79,10 @@ export async function saveFrame(input: {
   frame_number: number;
   player1_score: number;
   player2_score: number;
+  player3_score?: number;
   player1_high_break: number;
   player2_high_break: number;
+  player3_high_break?: number;
   winner_id: string | null;
 }) {
   const { error } = await supabase.from("frames").insert(input);
@@ -83,8 +91,18 @@ export async function saveFrame(input: {
 
 export async function updateMatch(
   id: string,
-  patch: Partial<Pick<Match, "player1_frames" | "player2_frames" | "winner_id" | "completed_at">>,
+  patch: Partial<
+    Pick<
+      Match,
+      | "player1_frames"
+      | "player2_frames"
+      | "player3_frames"
+      | "winner_id"
+      | "completed_at"
+    >
+  >,
 ) {
+
   const { error } = await supabase.from("matches").update(patch).eq("id", id);
   if (error) throw error;
 }

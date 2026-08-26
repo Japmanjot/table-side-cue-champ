@@ -41,6 +41,8 @@ function Index() {
 
   const [p1, setP1] = useState<string | null>(null);
   const [p2, setP2] = useState<string | null>(null);
+  const [p3, setP3] = useState<string | null>(null);
+  const [threePlayers, setThreePlayers] = useState(false);
   const [mode, setMode] = useState<GameMode>("standard");
   const [bestOf, setBestOf] = useState(1);
   const [target, setTarget] = useState(50);
@@ -53,16 +55,21 @@ function Index() {
     }
   }, [players, p1, p2]);
 
+  const picked = [p1, p2, ...(threePlayers ? [p3] : [])];
+  const valid =
+    picked.every(Boolean) && new Set(picked).size === picked.length;
+
   const start = useMutation({
     mutationFn: async () => {
-      if (!p1 || !p2 || p1 === p2) throw new Error("Pick two different players");
+      if (!valid) throw new Error("Pick different players for every seat");
       return createMatch({
         mode,
         target_score: mode === "race" ? target : null,
         best_of: mode === "race" ? 1 : bestOf,
         reds_count: mode === "race" ? 1 : reds,
-        player1_id: p1,
-        player2_id: p2,
+        player1_id: p1!,
+        player2_id: p2!,
+        player3_id: threePlayers ? p3 : null,
       });
     },
 
@@ -75,12 +82,24 @@ function Index() {
   return (
     <AppShell title="Cue Room" subtitle="Table-side scoreboard">
       <section className="space-y-6">
+        <div>
+          <Label>Players</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Chip active={!threePlayers} onClick={() => setThreePlayers(false)}>
+              2 Players
+            </Chip>
+            <Chip active={threePlayers} onClick={() => setThreePlayers(true)}>
+              3 Players
+            </Chip>
+          </div>
+        </div>
+
         <PlayerPicker
           label="Striker 1"
           players={players}
           value={p1}
           onChange={setP1}
-          disabledId={p2}
+          taken={[p2, threePlayers ? p3 : null]}
           loading={isLoading}
         />
         <PlayerPicker
@@ -88,9 +107,20 @@ function Index() {
           players={players}
           value={p2}
           onChange={setP2}
-          disabledId={p1}
+          taken={[p1, threePlayers ? p3 : null]}
           loading={isLoading}
         />
+        {threePlayers ? (
+          <PlayerPicker
+            label="Striker 3"
+            players={players}
+            value={p3}
+            onChange={setP3}
+            taken={[p1, p2]}
+            loading={isLoading}
+          />
+        ) : null}
+
 
         <div>
           <Label>Game mode</Label>

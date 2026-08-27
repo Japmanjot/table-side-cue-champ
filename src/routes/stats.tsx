@@ -160,7 +160,12 @@ function SelectPill({
 }
 
 function playerRecord(playerId: string, matches: Match[], frames: Frame[]) {
-  const mine = matches.filter((m) => m.player1_id === playerId || m.player2_id === playerId);
+  const mine = matches.filter(
+    (m) =>
+      m.player1_id === playerId ||
+      m.player2_id === playerId ||
+      m.player3_id === playerId,
+  );
   const wins = mine.filter((m) => m.winner_id === playerId).length;
   const ids = new Set(mine.map((m) => m.id));
   const myFrames = frames.filter((f) => ids.has(f.match_id));
@@ -169,9 +174,13 @@ function playerRecord(playerId: string, matches: Match[], frames: Frame[]) {
   let highBreak = 0;
   for (const f of myFrames) {
     const match = mine.find((m) => m.id === f.match_id)!;
-    const isP1 = match.player1_id === playerId;
-    points += isP1 ? f.player1_score : f.player2_score;
-    highBreak = Math.max(highBreak, isP1 ? f.player1_high_break : f.player2_high_break);
+    const seat =
+      match.player1_id === playerId ? 1 : match.player2_id === playerId ? 2 : 3;
+    points += seat === 1 ? f.player1_score : seat === 2 ? f.player2_score : f.player3_score;
+    highBreak = Math.max(
+      highBreak,
+      seat === 1 ? f.player1_high_break : seat === 2 ? f.player2_high_break : f.player3_high_break,
+    );
     if (f.winner_id === playerId) framesWon += 1;
   }
   const framesPlayed = myFrames.length;

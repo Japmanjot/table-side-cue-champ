@@ -210,7 +210,7 @@ function Index() {
 
         <Button
           className="h-16 w-full rounded-2xl text-lg font-semibold"
-          disabled={!p1 || !p2 || p1 === p2 || start.isPending}
+          disabled={!valid || start.isPending}
           onClick={() => start.mutate()}
         >
           <Play className="mr-2 h-5 w-5" />
@@ -281,14 +281,14 @@ function PlayerPicker({
   players,
   value,
   onChange,
-  disabledId,
+  taken,
   loading,
 }: {
   label: string;
   players: Player[];
   value: string | null;
   onChange: (id: string) => void;
-  disabledId: string | null;
+  taken: (string | null)[];
   loading: boolean;
 }) {
   return (
@@ -301,7 +301,7 @@ function PlayerPicker({
           {players.map((p) => (
             <button
               key={p.id}
-              disabled={p.id === disabledId}
+              disabled={taken.includes(p.id) && value !== p.id}
               onClick={() => onChange(p.id)}
               className={cn(
                 "h-12 rounded-xl border border-border bg-card px-4 font-semibold transition-colors disabled:opacity-30",

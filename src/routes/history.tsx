@@ -79,6 +79,25 @@ function HistoryPage() {
 
   return (
     <AppShell title="History" subtitle={`${played.length} matches played`}>
+      <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1">
+        {(
+          [
+            { id: "two", label: "2-Player" },
+            { id: "three", label: "3-Player" },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setPlayerCount(opt.id)}
+            className={cn(
+              "h-10 rounded-xl text-sm font-semibold uppercase tracking-wider text-muted-foreground",
+              playerCount === opt.id && "bg-accent text-gold",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
       <div className="space-y-6">
         {played.length === 0 ? (
           <p className="text-sm text-muted-foreground">No finished matches yet.</p>

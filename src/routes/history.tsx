@@ -117,6 +117,8 @@ function HistoryPage() {
                 const mFrames = frames.filter((f) => f.match_id === m.id);
                 const p1Points = mFrames.reduce((s, f) => s + f.player1_score, 0);
                 const p2Points = mFrames.reduce((s, f) => s + f.player2_score, 0);
+                const p3Points = mFrames.reduce((s, f) => s + f.player3_score, 0);
+                const three = m.player3_id != null;
                 return (
                   <article key={m.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
@@ -140,14 +142,21 @@ function HistoryPage() {
 
                     <p className="mt-2 text-lg font-semibold">
                       {name(m.player1_id)} vs {name(m.player2_id)}
+                      {three ? ` vs ${name(m.player3_id)}` : ""}
                     </p>
                     <p className="score-digits mt-1 text-3xl">
                       {m.mode === "race" || m.best_of === 1
-                        ? `${p1Points} – ${p2Points}`
-                        : `${m.player1_frames} – ${m.player2_frames}`}
+                        ? three
+                          ? `${p1Points} – ${p2Points} – ${p3Points}`
+                          : `${p1Points} – ${p2Points}`
+                        : three
+                          ? `${m.player1_frames} – ${m.player2_frames} – ${m.player3_frames}`
+                          : `${m.player1_frames} – ${m.player2_frames}`}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Frames {m.player1_frames}–{m.player2_frames} · Points {p1Points}–{p2Points}
+                      Frames {m.player1_frames}–{m.player2_frames}
+                      {three ? `–${m.player3_frames}` : ""} · Points {p1Points}–{p2Points}
+                      {three ? `–${p3Points}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-gold">
                       Winner: {name(m.winner_id)}

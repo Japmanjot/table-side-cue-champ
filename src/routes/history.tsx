@@ -31,6 +31,7 @@ function HistoryPage() {
   const { data: frames = [] } = useQuery({ queryKey: ["frames"], queryFn: fetchFrames });
   const { data: players = [] } = useQuery({ queryKey: ["players"], queryFn: fetchPlayers });
   const queryClient = useQueryClient();
+  const [playerCount, setPlayerCount] = useState<"two" | "three">("two");
 
   const remove = useMutation({
     mutationFn: deleteMatch,
@@ -48,10 +49,13 @@ function HistoryPage() {
     if (window.confirm("Delete this match record?")) remove.mutate(id);
   };
 
-
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
   const played = [...matches]
-    .filter((m) => m.completed_at)
+    .filter(
+      (m) =>
+        m.completed_at &&
+        (playerCount === "three" ? m.player3_id != null : m.player3_id == null),
+    )
     .sort(
       (a, b) =>
         new Date(b.completed_at ?? b.created_at).getTime() -

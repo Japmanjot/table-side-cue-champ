@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isToday, isYesterday } from "date-fns";
 import { Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
 import { deleteMatch, fetchFrames, fetchMatches, fetchPlayers } from "@/lib/db";
 import { modeLabel } from "@/lib/game";
+import { cn } from "@/lib/utils";
 
 
 export const Route = createFileRoute("/history")({
@@ -29,6 +31,7 @@ function HistoryPage() {
   const { data: frames = [] } = useQuery({ queryKey: ["frames"], queryFn: fetchFrames });
   const { data: players = [] } = useQuery({ queryKey: ["players"], queryFn: fetchPlayers });
   const queryClient = useQueryClient();
+  const [playerCount, setPlayerCount] = useState<"two" | "three">("two");
 
   const remove = useMutation({
     mutationFn: deleteMatch,
@@ -46,10 +49,13 @@ function HistoryPage() {
     if (window.confirm("Delete this match record?")) remove.mutate(id);
   };
 
-
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
   const played = [...matches]
-    .filter((m) => m.completed_at)
+    .filter(
+      (m) =>
+        m.completed_at &&
+        (playerCount === "three" ? m.player3_id != null : m.player3_id == null),
+    )
     .sort(
       (a, b) =>
         new Date(b.completed_at ?? b.created_at).getTime() -
@@ -73,6 +79,25 @@ function HistoryPage() {
 
   return (
     <AppShell title="History" subtitle={`${played.length} matches played`}>
+      <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1">
+        {(
+          [
+            { id: "two", label: "2-Player" },
+            { id: "three", label: "3-Player" },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setPlayerCount(opt.id)}
+            className={cn(
+              "h-10 rounded-xl text-sm font-semibold uppercase tracking-wider text-muted-foreground",
+              playerCount === opt.id && "bg-accent text-gold",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
       <div className="space-y-6">
         {played.length === 0 ? (
           <p className="text-sm text-muted-foreground">No finished matches yet.</p>
@@ -92,6 +117,8 @@ function HistoryPage() {
                 const mFrames = frames.filter((f) => f.match_id === m.id);
                 const p1Points = mFrames.reduce((s, f) => s + f.player1_score, 0);
                 const p2Points = mFrames.reduce((s, f) => s + f.player2_score, 0);
+                const p3Points = mFrames.reduce((s, f) => s + f.player3_score, 0);
+                const three = m.player3_id != null;
                 return (
                   <article key={m.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
@@ -115,14 +142,21 @@ function HistoryPage() {
 
                     <p className="mt-2 text-lg font-semibold">
                       {name(m.player1_id)} vs {name(m.player2_id)}
+                      {three ? ` vs ${name(m.player3_id)}` : ""}
                     </p>
                     <p className="score-digits mt-1 text-3xl">
                       {m.mode === "race" || m.best_of === 1
-                        ? `${p1Points} – ${p2Points}`
-                        : `${m.player1_frames} – ${m.player2_frames}`}
+                        ? three
+                          ? `${p1Points} – ${p2Points} – ${p3Points}`
+                          : `${p1Points} – ${p2Points}`
+                        : three
+                          ? `${m.player1_frames} – ${m.player2_frames} – ${m.player3_frames}`
+                          : `${m.player1_frames} – ${m.player2_frames}`}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Frames {m.player1_frames}–{m.player2_frames} · Points {p1Points}–{p2Points}
+                      Frames {m.player1_frames}–{m.player2_frames}
+                      {three ? `–${m.player3_frames}` : ""} · Points {p1Points}–{p2Points}
+                      {three ? `–${p3Points}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-gold">
                       Winner: {name(m.winner_id)}

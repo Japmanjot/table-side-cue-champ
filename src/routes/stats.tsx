@@ -30,6 +30,7 @@ function StatsPage() {
   const { data: frames = [] } = useQuery({ queryKey: ["frames"], queryFn: fetchFrames });
 
   const [mode, setMode] = useState<GameMode>("standard");
+  const [playerCount, setPlayerCount] = useState<"two" | "three">("two");
   const [a, setA] = useState<string | null>(null);
   const [b, setB] = useState<string | null>(null);
 
@@ -40,11 +41,35 @@ function StatsPage() {
     }
   }, [players, a, b]);
 
-  const modeMatches = matches.filter((m) => m.mode === mode && m.completed_at);
+  const modeMatches = matches.filter(
+    (m) =>
+      m.mode === mode &&
+      m.completed_at &&
+      (playerCount === "three" ? m.player3_id != null : m.player3_id == null),
+  );
   const name = (id: string | null) => players.find((p) => p.id === id)?.name ?? "—";
 
   return (
     <AppShell title="Stats" subtitle="Standard and race records kept apart">
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-card p-1">
+        {(
+          [
+            { id: "two", label: "2-Player" },
+            { id: "three", label: "3-Player" },
+          ] as const
+        ).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setPlayerCount(opt.id)}
+            className={cn(
+              "h-10 rounded-xl text-sm font-semibold uppercase tracking-wider text-muted-foreground",
+              playerCount === opt.id && "bg-accent text-gold",
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
       <Tabs value={mode} onValueChange={(v) => setMode(v as GameMode)}>
         <TabsList className="grid w-full grid-cols-2 rounded-2xl">
           <TabsTrigger value="standard">Standard</TabsTrigger>
